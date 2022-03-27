@@ -1,4 +1,6 @@
 eclipse.preferences.version=1
+encoding//Debug/debuginterface/subdir_rules.mk=UTF-8
+encoding//Debug/debuginterface/subdir_vars.mk=UTF-8
 encoding//Debug/gpio/subdir_rules.mk=UTF-8
 encoding//Debug/gpio/subdir_vars.mk=UTF-8
 encoding//Debug/heartbeat/subdir_rules.mk=UTF-8
@@ -12,3 +14,9 @@ encoding//Debug/subdir_rules.mk=UTF-8
 encoding//Debug/subdir_vars.mk=UTF-8
 encoding//Debug/tasks/subdir_rules.mk=UTF-8
 encoding//Debug/tasks/subdir_vars.mk=UTF-8
+encoding//Debug/uart/subdir_rules.mk=UTF-8
+encoding//Debug/uart/subdir_vars.mk=UTF-8
+encoding//Debug/utils/subdir_rules.mk=UTF-8
+encoding//Debug/utils/subdir_vars.mk=UTF-8
+encoding//Debug/version/subdir_rules.mk=UTF-8
+encoding//Debug/version/subdir_vars.mk=UTF-8
