@@ -9,5 +9,6 @@
 #define PWM_PWM_H_
 
 void initPWM(void);
+void setPWM(uint32_t percent);
 
 #endif /* PWM_PWM_H_ */

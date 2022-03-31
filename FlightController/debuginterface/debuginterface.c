@@ -23,13 +23,18 @@
 #include "debuginterface.h"
 #include "utils/logger.h"
 #include "uart/uart.h"
+#include "pwm/pwm.h"
 
+char buffer[255];
 Mailbox_Handle debugMailbox;
 Mailbox_Struct debugMailboxStruct;
 DebugMessageObject MailboxBuffer[MAILBOXSLOTS + 1];
 
 // GET
 static cmdState getVersion(const char* const argv[], const int argc);
+
+// GET
+static cmdState debugSetPWM(const char* const argv[], const int argc);
 
 // CMD
 static cmdState cmdTest(const char* const argv[], const int argc);
@@ -40,12 +45,25 @@ static const cmdItem DEBUG_CMD_ARRAY [] =
     {"version", GET, "get version", 2, SHOW_ITEM, getVersion},
 
     // SET
+    {"pwm", SET, "set pwm <dutyCycleInPercent>", 2, SHOW_ITEM, debugSetPWM},
 
     // CMD
     {"test", CMD, "cmd test", 2,  SHOW_ITEM, cmdTest}
 
     // LOG
 };
+
+static cmdState debugSetPWM(const char* const argv[], const int argc)
+{
+    const uint32_t pwmDutyCycleInPercent = atoi(argv[2]);
+
+    setPWM(pwmDutyCycleInPercent);
+
+    snprintf(buffer, sizeof(buffer), "PWM set to %u", pwmDutyCycleInPercent);
+    printLog(buffer, INFOMSG);
+
+    return CMD_OK;
+}
 
 static cmdState getVersion(const char* const argv[], const int argc)
 {
