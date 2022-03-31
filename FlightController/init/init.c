@@ -30,6 +30,7 @@
 #include "utils/clock.h"
 #include "version/version.h"
 #include "utils/logger.h"
+#include "pwm/pwm.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -139,6 +140,7 @@ void init(void)
     initGPIO();
     initUART();
     openDebugUART();
+    initPWM();
 
     initTasks();
     initMailboxes();
