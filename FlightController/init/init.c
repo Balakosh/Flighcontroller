@@ -31,6 +31,7 @@
 #include "version/version.h"
 #include "utils/logger.h"
 #include "pwm/pwm.h"
+#include "esc/esc.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -45,6 +46,14 @@ static void initClocks(void)
     clockParams.instance->name = "msTick";
 
     Clock_construct(&msTicksClockStruct, (Clock_FuncPtr)msTicksFxn, 1, &clockParams);
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = 20;
+    clockParams.startFlag = false;
+    clockParams.instance->name = "escCalibrate";
+
+    Clock_construct(&escCalibrationClockStruct, (Clock_FuncPtr)escCalibrationClockFxn, 1, &clockParams);
+    escCalibrationClockHandle = Clock_handle(&escCalibrationClockStruct);
 }
 
 static void initMailboxes(void)
