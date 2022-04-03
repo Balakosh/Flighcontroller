@@ -150,6 +150,7 @@ void init(void)
     initUART();
     openDebugUART();
     initPWM();
+    initI2C();
 
     initTasks();
     initMailboxes();
