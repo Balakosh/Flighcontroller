@@ -29,6 +29,7 @@ void setPWM(const uint32_t percent)
     if (percent != 0.0f)
     {
         const unsigned int timerLoad = clock / pwmFrequencyInHertz;
+        const uint32_t dutyCycle = timerLoad * ((100.0f - percent) / 100.0f);
         const uint32_t prescaler = timerLoad >> 16;
 
         TimerPrescaleSet(TIMER3_BASE, TIMER_B, prescaler);
@@ -37,11 +38,8 @@ void setPWM(const uint32_t percent)
 
         TimerLoadSet(TIMER3_BASE, TIMER_B, timerLoad);
 
-        const uint32_t period = TimerLoadGet(TIMER3_BASE, TIMER_B) + (TimerPrescaleGet(TIMER3_BASE, TIMER_B) * (prescaler << 16));
-        const uint32_t dutyCycle = period * ((100.0f - percent) / 100.0f);
-
-        TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, dutyCycle / (prescaler << 16));
-        TimerMatchSet(TIMER3_BASE, TIMER_B, dutyCycle % (prescaler << 16));
+        TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle >> 16));
+        TimerMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle & 0xffff));
 
         TimerEnable(TIMER3_BASE, TIMER_B);
     }
@@ -68,6 +66,4 @@ void initPWM(void)
 
     TimerConfigure(TIMER3_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM);
     TimerClockSourceSet(TIMER3_BASE, TIMER_CLOCK_SYSTEM);
-
-//    TimerPrescaleSet(TIMER3_BASE, TIMER_B, prescaler);
 }
