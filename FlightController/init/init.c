@@ -32,6 +32,7 @@
 #include "utils/logger.h"
 #include "pwm/pwm.h"
 #include "esc/esc.h"
+#include "i2c/i2c.h"
 
 char resetCauseString[128];
 uint32_t resetCause;

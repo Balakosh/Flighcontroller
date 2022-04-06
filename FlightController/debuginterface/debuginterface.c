@@ -67,11 +67,11 @@ static cmdState debugCmdCalibrateESC(const char* const argv[], const int argc)
 
 static cmdState debugSetPWM(const char* const argv[], const int argc)
 {
-    const uint32_t pwmDutyCycleInPercent = atoi(argv[2]);
+    const uint32_t pwmDutyCycleInPerMil = atoi(argv[2]);
 
-    setPWM(pwmDutyCycleInPercent);
+    setPWM(pwmDutyCycleInPerMil);
 
-    snprintf(buffer, sizeof(buffer), "PWM set to %u", pwmDutyCycleInPercent);
+    snprintf(buffer, sizeof(buffer), "PWM set to %u", pwmDutyCycleInPerMil);
     printLog(buffer, INFOMSG);
 
     return CMD_OK;
