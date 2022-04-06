@@ -24,32 +24,34 @@
 static uint32_t clock;
 static const uint32_t pwmFrequencyInHertz = 100;
 
-void setPWM(const uint32_t percent)
+void setPWM(const uint32_t perMil)
 {
-    if (percent != 0.0f)
+    if (perMil <= 1000)
     {
-        const unsigned int timerLoad = clock / pwmFrequencyInHertz;
-        const uint32_t dutyCycle = timerLoad * ((100.0f - percent) / 100.0f);
-        const uint32_t prescaler = timerLoad >> 16;
+        if (perMil != 0.0f)
+        {
+            const unsigned int timerLoad = clock / pwmFrequencyInHertz;
+            const uint32_t dutyCycle = timerLoad * ((1000.0f - perMil) / 1000.0f);
+            const uint32_t prescaler = timerLoad >> 16;
 
-        TimerPrescaleSet(TIMER3_BASE, TIMER_B, prescaler);
+            TimerPrescaleSet(TIMER3_BASE, TIMER_B, prescaler);
 
-        GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_3);
+            GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_3);
 
-        TimerLoadSet(TIMER3_BASE, TIMER_B, timerLoad);
+            TimerLoadSet(TIMER3_BASE, TIMER_B, timerLoad);
 
-        TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle >> 16));
-        TimerMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle & 0xffff));
+            TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle >> 16));
+            TimerMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle & 0xffff));
 
-        TimerEnable(TIMER3_BASE, TIMER_B);
+            TimerEnable(TIMER3_BASE, TIMER_B);
+        }
+        else
+        {
+            TimerDisable(TIMER3_BASE, TIMER_B);
+            GPIOPinTypeGPIOOutput(GPIO_PORTM_BASE, GPIO_PIN_3);
+            GPIOPinWrite(GPIO_PORTM_BASE, GPIO_PIN_3, 0);
+        }
     }
-    else
-    {
-        TimerDisable(TIMER3_BASE, TIMER_B);
-        GPIOPinTypeGPIOOutput(GPIO_PORTM_BASE, GPIO_PIN_3);
-        GPIOPinWrite(GPIO_PORTM_BASE, GPIO_PIN_3, 0);
-    }
-
 }
 
 void initPWM(void)
