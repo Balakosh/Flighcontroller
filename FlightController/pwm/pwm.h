@@ -10,5 +10,6 @@
 
 void initPWM(void);
 void setPWM(uint32_t perMil);
+void setPWMinPercent(uint32_t percent);
 
 #endif /* PWM_PWM_H_ */

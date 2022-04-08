@@ -24,6 +24,14 @@
 static uint32_t clock;
 static const uint32_t pwmFrequencyInHertz = 100;
 
+void setPWMinPercent(const uint32_t percent)
+{
+    if (percent <= 100)
+    {
+        setPWM(percent + 500);
+    }
+}
+
 void setPWM(const uint32_t perMil)
 {
     if (perMil <= 1000)
@@ -68,4 +76,6 @@ void initPWM(void)
 
     TimerConfigure(TIMER3_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM);
     TimerClockSourceSet(TIMER3_BASE, TIMER_CLOCK_SYSTEM);
+
+    setPWMinPercent(0);
 }
