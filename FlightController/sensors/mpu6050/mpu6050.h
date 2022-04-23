@@ -8,6 +8,8 @@
 #ifndef SENSORS_MPU6050_MPU6050_H_
 #define SENSORS_MPU6050_MPU6050_H_
 
+#include <ti/sysbios/knl/Semaphore.h>
+
 enum
 {
     MPU6050_SELF_TEST_X = 0x0d,
@@ -137,9 +139,49 @@ enum
     MPU6050_DEVICE_RESET = 0x80
 } MPU6050_PowerManagement1;
 
+enum
+{
+    MPU6050_INPUT_DISABLED = 0
+} MPU6050_Config;
+
+enum
+{
+    MPU6050_FIFO_ACC = 0x8,
+    MPU6050_FIFO_GYRO = 0x70,
+    MPU6050_FIFO_TEMP = 0x80
+} MPU6050_FIFO;
+
+typedef struct __attribute__ ((__packed__))
+{
+    int16_t accelX;
+    int16_t accelY;
+    int16_t accelZ;
+    int16_t temperature;
+    int16_t gyroX;
+    int16_t gyroY;
+    int16_t gyroZ;
+} MPU6050_FifoData;
+
+typedef struct __attribute__ ((__packed__))
+{
+    double accelX;
+    double accelY;
+    double accelZ;
+    double temperature;
+    double gyroX;
+    double gyroY;
+    double gyroZ;
+} MPU6050_Data;
+
 void initMPU6050(void);
 void readAccelerometer(void);
 void readGyroscope(void);
 void readTemperature(void);
+uint16_t getFifoCount(void);
+MPU6050_Data getFifoValues(void);
+uint8_t getInterruptStatus(void);
+
+extern Semaphore_Struct mpu6050InterruptSemaphoreStruct;
+extern Semaphore_Handle mpu6050InterruptSemaphoreHandle;
 
 #endif /* SENSORS_MPU6050_MPU6050_H_ */

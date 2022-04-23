@@ -14,14 +14,14 @@
 #include <ti/drivers/gpio/GPIOTiva.h>
 
 #include "gpio/gpio.h"
+#include "sensors/mpu6050/mpu6050.h"
 
 GPIO_PinConfig gpioPinConfigs[] =
 {
     /* Input pins */
-    /* EK_TM4C1294XL_USR_SW1 */
     GPIOTiva_PJ_0 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
-    /* EK_TM4C1294XL_USR_SW2 */
     GPIOTiva_PJ_1 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
+    GPIOTiva_PC_7 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
 
     /* Output pins */
     /* EK_TM4C1294XL_USR_D1 */
@@ -60,8 +60,19 @@ const GPIOTiva_Config GPIOTiva_config =
     .intPriority = (~0)
 };
 
+void mpu6050Hwi(unsigned int pinState)
+{
+    static int counter;
+
+    counter++;
+
+    Semaphore_post(mpu6050InterruptSemaphoreHandle);
+}
+
 void createGPIOCallbacks(void)
 {
+    GPIO_setCallback(MPU6050_INTERRUPT, mpu6050Hwi);
+    GPIO_enableInt(MPU6050_INTERRUPT);
 }
 
 void toggleLEDD1(void)

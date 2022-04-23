@@ -13,6 +13,7 @@ typedef enum GPIOName
     // Inputs
     EK_TM4C1294XL_USR_SW1 = 0,
     EK_TM4C1294XL_USR_SW2,
+    MPU6050_INTERRUPT,
 
     // Outputs
     EK_TM4C1294XL_D1,

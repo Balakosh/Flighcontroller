@@ -5,12 +5,16 @@
  *      Author: Akeman
  */
 
+#include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
 
 #include <ti/drivers/I2C.h>
 
 #include "i2c/i2c.h"
 #include "mpu6050/mpu6050.h"
+#include "filter/madgwick/MadgwickAHRS.h"
+
+static MPU6050_Data data;
 
 void sensorTaskFxn(void)
 {
@@ -18,16 +22,15 @@ void sensorTaskFxn(void)
 
     while (1)
     {
-        Task_sleep(1000);
+        Semaphore_pend(mpu6050InterruptSemaphoreHandle, BIOS_WAIT_FOREVER);
 
-        readAccelerometer();
+        const uint8_t interruptStatus = getInterruptStatus();
 
-        Task_sleep(10);
+        const uint16_t fifoCount = getFifoCount();
 
-        readGyroscope();
-
-        Task_sleep(10);
-
-        readTemperature();
+        if (fifoCount > 0)
+        {
+            data = getFifoValues();
+        }
     }
 }

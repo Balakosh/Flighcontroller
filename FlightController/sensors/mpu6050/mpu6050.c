@@ -6,8 +6,11 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 
 #include <ti/drivers/I2C.h>
+
+#include <ti/sysbios/knl/Semaphore.h>
 
 #include "i2c/i2c.h"
 #include "mpu6050.h"
@@ -16,6 +19,9 @@
 static I2C_Handle MPU6050i2cHandle;
 
 static const uint8_t MPU6050i2cAddress = 0x68;
+
+Semaphore_Struct mpu6050InterruptSemaphoreStruct;
+Semaphore_Handle mpu6050InterruptSemaphoreHandle;
 
 static float accelXinG;
 static float accelYinG;
@@ -125,13 +131,23 @@ static void enableInterruptsMPU6050(void)
 
 static void configurePowerManagementMPU6050(void)
 {
-    writeRegister(MPU6050_PWR_MGMT_1, MPU6050_SLEEP_DISABLE | MPU6050_PLL_X_GYRO_REF);
+    writeRegister(MPU6050_PWR_MGMT_1, 0);
     writeRegister(MPU6050_PWR_MGMT_2, 0);
 }
 
 static void configureSampleRateDividerMPU6050(void)
 {
     writeRegister(MPU6050_SAMPLE_RATE_DIVIDER, 0);
+}
+
+static void configureMPU6050(void)
+{
+    writeRegister(MPU6050_CONFIG, 1);
+}
+
+static void configureFIFOMPU6050(void)
+{
+    writeRegister(MPU6050_FIFO_EN, MPU6050_FIFO_ACC | MPU6050_FIFO_GYRO | MPU6050_FIFO_TEMP);
 }
 
 void initMPU6050(void)
@@ -141,7 +157,9 @@ void initMPU6050(void)
     configurePowerManagementMPU6050();
     resetMPU6050AndClearRegisters();
     enableInterruptsMPU6050();
+    configureMPU6050();
     configureSampleRateDividerMPU6050();
+    configureFIFOMPU6050();
 
     const uint8_t whoami = readRegister(MPU6050_WHO_AM_I);
     const uint8_t pwrManagement1 = readRegister(MPU6050_PWR_MGMT_1);
@@ -152,11 +170,6 @@ void initMPU6050(void)
 
     writeRegister(MPU6050_GYRO_CONFIG, MPU6050_GYRO_CONFIG_250_DEG_PER_S);
     const uint8_t gyroConfig = readRegister(MPU6050_GYRO_CONFIG);
-
-    if (1 == 2)
-    {
-
-    }
 }
 
 void readAccelerometer(void)
@@ -191,4 +204,66 @@ void readTemperature(void)
     {
         temperatureInCelsius = ((int16_t)((tempBuffer[0] << 8) | tempBuffer[1]) / 340.0f) + 36.53f;
     }
+}
+
+uint16_t getFifoCount(void)
+{
+    uint8_t buffer[2];
+
+    if (readRegisterBurst(MPU6050_FIFO_COUNTH, buffer, sizeof(buffer)))
+    {
+        return (uint16_t)((buffer[0] << 8) | buffer[1]);
+    }
+
+    return 0;
+}
+
+static uint8_t getFifoValue(void)
+{
+    uint8_t buffer = 0;
+
+    if (readRegisterBurst(MPU6050_FIFO_R_W, &buffer, sizeof(buffer)))
+    {
+        return buffer;
+    }
+
+    return 0;
+}
+
+uint8_t getInterruptStatus(void)
+{
+    uint8_t buffer = 0;
+
+    if (readRegisterBurst(MPU6050_INT_STATUS, &buffer, sizeof(buffer)))
+    {
+        return buffer;
+    }
+
+    return 0;
+}
+
+MPU6050_Data getFifoValues(void)
+{
+    MPU6050_FifoData data;
+    MPU6050_Data convertedData;
+
+    memset(&data, 0, sizeof(MPU6050_FifoData));
+    memset(&convertedData, 0, sizeof(MPU6050_Data));
+
+    if (readRegisterBurst(MPU6050_FIFO_R_W, (uint8_t*)&data, sizeof(data)))
+    {
+        convertedData.accelX = ConvertTwosComplementShortToInteger(data.accelX) / 16384.0;
+        convertedData.accelY = ConvertTwosComplementShortToInteger(data.accelY) / 16384.0;
+        convertedData.accelZ = ConvertTwosComplementShortToInteger(data.accelZ) / 16384.0;
+
+        convertedData.temperature = (data.temperature / 340.0) + 36.53;
+
+        convertedData.gyroX = ConvertTwosComplementShortToInteger(data.gyroX) / 131.0;
+        convertedData.gyroY = ConvertTwosComplementShortToInteger(data.gyroY) / 131.0;
+        convertedData.gyroZ = ConvertTwosComplementShortToInteger(data.gyroZ) / 131.0;
+
+        return convertedData;
+    }
+
+    return convertedData;
 }

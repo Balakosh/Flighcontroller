@@ -22,6 +22,7 @@
 #include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Semaphore.h>
 
 #include "tasks/tasks.h"
 #include "gpio/gpio.h"
@@ -33,6 +34,7 @@
 #include "pwm/pwm.h"
 #include "esc/esc.h"
 #include "i2c/i2c.h"
+#include "sensors/mpu6050/mpu6050.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -144,6 +146,17 @@ static int getResetCause(void)
     return resetCause;
 }
 
+void initSemaphores(void)
+{
+    Semaphore_Params params;
+
+    Semaphore_Params_init(&params);
+    params.mode = Semaphore_Mode_BINARY;
+
+    Semaphore_construct(&mpu6050InterruptSemaphoreStruct, 0, &params);
+    mpu6050InterruptSemaphoreHandle = Semaphore_handle(&mpu6050InterruptSemaphoreStruct);
+}
+
 void init(void)
 {
     initPeripherals();
@@ -156,6 +169,7 @@ void init(void)
     initTasks();
     initMailboxes();
     initClocks();
+    initSemaphores();
 
     getResetCause();
 
