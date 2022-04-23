@@ -25,11 +25,16 @@
 #include "uart/uart.h"
 #include "pwm/pwm.h"
 #include "esc/esc.h"
+#include "sensors/mpu6050/mpu6050.h"
+#include "sensors/sensor.h"
 
 char buffer[255];
 Mailbox_Handle debugMailbox;
 Mailbox_Struct debugMailboxStruct;
 DebugMessageObject MailboxBuffer[MAILBOXSLOTS + 1];
+
+Clock_Struct dataLogClockStruct;
+Clock_Handle dataLogClockHandle;
 
 // GET
 static cmdState debugGetVersion(const char* const argv[], const int argc);
@@ -41,6 +46,9 @@ static cmdState debugSetPWM(const char* const argv[], const int argc);
 static cmdState debugCmdTest(const char* const argv[], const int argc);
 static cmdState debugCmdCalibrateESC(const char* const argv[], const int argc);
 
+// LOG
+static cmdState debugCmdLogData(const char* const argv[], const int argc);
+
 static const cmdItem DEBUG_CMD_ARRAY [] =
 {
     // GET
@@ -51,10 +59,46 @@ static const cmdItem DEBUG_CMD_ARRAY [] =
 
     // CMD
     {"test", CMD, "cmd test", 2,  SHOW_ITEM, debugCmdTest},
-    {"calibrate", CMD, "cmd calibrate", 2,  SHOW_ITEM, debugCmdCalibrateESC}
+    {"calibrate", CMD, "cmd calibrate", 2,  SHOW_ITEM, debugCmdCalibrateESC},
 
     // LOG
+    {"data", LOG, "log data", 2,  SHOW_ITEM, debugCmdLogData}
 };
+
+void dataLogClockFxn(void)
+{
+    const MPU6050_Data data = getMPU6050Data();
+
+    if (data.valid)
+    {
+        const RollPitchYawInRad rpy = getEulerAngles();
+
+        snprintf(buffer, sizeof(buffer), "r=%.0f p=%.0f y=%.0f accX=%.2f accY=%.2f accZ=%.2f gyroX=%.2f gyroY=%.2f gyroZ=%.2f temp=%.2f",
+                 rpy.roll * 180 / M_PI, rpy.pitch * 180 / M_PI, rpy.yaw * 180 / M_PI,
+                 data.accelX, data.accelY, data.accelZ,
+                 data.gyroX, data.gyroY, data.gyroZ,
+                 data.temperature);
+        printLog(buffer, INFOMSG);
+    }
+    else
+    {
+        printLog("MPU6050 data invalid!", ERRORMSG);
+    }
+}
+
+static cmdState debugCmdLogData(const char* const argv[], const int argc)
+{
+    if (!Clock_isActive(dataLogClockHandle))
+    {
+        Clock_start(dataLogClockHandle);
+    }
+    else
+    {
+        Clock_stop(dataLogClockHandle);
+    }
+
+    return CMD_OK;
+}
 
 static cmdState debugCmdCalibrateESC(const char* const argv[], const int argc)
 {

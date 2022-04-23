@@ -57,6 +57,14 @@ static void initClocks(void)
 
     Clock_construct(&escCalibrationClockStruct, (Clock_FuncPtr)escCalibrationClockFxn, 1, &clockParams);
     escCalibrationClockHandle = Clock_handle(&escCalibrationClockStruct);
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = 1000;
+    clockParams.startFlag = false;
+    clockParams.instance->name = "dataLog";
+
+    Clock_construct(&dataLogClockStruct, (Clock_FuncPtr)dataLogClockFxn, 1, &clockParams);
+    dataLogClockHandle = Clock_handle(&dataLogClockStruct);
 }
 
 static void initMailboxes(void)

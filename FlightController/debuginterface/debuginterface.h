@@ -9,6 +9,7 @@
 #define DEBUGINTERFACE_DEBUGINTERFACE_H_
 
 #include <ti/sysbios/knl/Mailbox.h>
+#include <ti/sysbios/knl/Clock.h>
 
 #define MAILBOXSIZE 128
 #define UART_MAXSTRLEN 128
@@ -66,8 +67,12 @@ extern Mailbox_Handle debugMailbox;
 extern Mailbox_Struct debugMailboxStruct;
 extern DebugMessageObject MailboxBuffer[MAILBOXSLOTS + 1];
 
+extern Clock_Struct dataLogClockStruct;
+extern Clock_Handle dataLogClockHandle;
+
 void writeDebug(const char* message);
 void writeDebugTaskFxn(void);
 void readDebugTaskFxn(void);
+void dataLogClockFxn(void);
 
 #endif /* DEBUGINTERFACE_DEBUGINTERFACE_H_ */

@@ -8,6 +8,8 @@
 #ifndef SENSORS_MPU6050_MPU6050_H_
 #define SENSORS_MPU6050_MPU6050_H_
 
+#include <stdbool.h>
+
 #include <ti/sysbios/knl/Semaphore.h>
 
 enum
@@ -153,17 +155,6 @@ enum
 
 typedef struct __attribute__ ((__packed__))
 {
-    int16_t accelX;
-    int16_t accelY;
-    int16_t accelZ;
-    int16_t temperature;
-    int16_t gyroX;
-    int16_t gyroY;
-    int16_t gyroZ;
-} MPU6050_FifoData;
-
-typedef struct __attribute__ ((__packed__))
-{
     double accelX;
     double accelY;
     double accelZ;
@@ -171,6 +162,7 @@ typedef struct __attribute__ ((__packed__))
     double gyroX;
     double gyroY;
     double gyroZ;
+    bool valid;
 } MPU6050_Data;
 
 void initMPU6050(void);
@@ -178,7 +170,7 @@ void readAccelerometer(void);
 void readGyroscope(void);
 void readTemperature(void);
 uint16_t getFifoCount(void);
-MPU6050_Data getFifoValues(void);
+bool getFifoValues(MPU6050_Data* const convertedData);
 uint8_t getInterruptStatus(void);
 
 extern Semaphore_Struct mpu6050InterruptSemaphoreStruct;

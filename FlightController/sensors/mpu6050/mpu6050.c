@@ -137,7 +137,7 @@ static void configurePowerManagementMPU6050(void)
 
 static void configureSampleRateDividerMPU6050(void)
 {
-    writeRegister(MPU6050_SAMPLE_RATE_DIVIDER, 0);
+    writeRegister(MPU6050_SAMPLE_RATE_DIVIDER, 1);
 }
 
 static void configureMPU6050(void)
@@ -155,6 +155,7 @@ void initMPU6050(void)
     openI2C();
 
     configurePowerManagementMPU6050();
+    resetMPU6050();
     resetMPU6050AndClearRegisters();
     enableInterruptsMPU6050();
     configureMPU6050();
@@ -218,18 +219,6 @@ uint16_t getFifoCount(void)
     return 0;
 }
 
-static uint8_t getFifoValue(void)
-{
-    uint8_t buffer = 0;
-
-    if (readRegisterBurst(MPU6050_FIFO_R_W, &buffer, sizeof(buffer)))
-    {
-        return buffer;
-    }
-
-    return 0;
-}
-
 uint8_t getInterruptStatus(void)
 {
     uint8_t buffer = 0;
@@ -242,25 +231,24 @@ uint8_t getInterruptStatus(void)
     return 0;
 }
 
-MPU6050_Data getFifoValues(void)
+bool getFifoValues(MPU6050_Data* const convertedData)
 {
-    MPU6050_FifoData data;
-    MPU6050_Data convertedData;
+    uint8_t data[14];
 
-    memset(&data, 0, sizeof(MPU6050_FifoData));
-    memset(&convertedData, 0, sizeof(MPU6050_Data));
+    memset(&data, 0, sizeof(data));
+    memset(convertedData, 0, sizeof(MPU6050_Data));
 
     if (readRegisterBurst(MPU6050_FIFO_R_W, (uint8_t*)&data, sizeof(data)))
     {
-        convertedData.accelX = ConvertTwosComplementShortToInteger(data.accelX) / 16384.0;
-        convertedData.accelY = ConvertTwosComplementShortToInteger(data.accelY) / 16384.0;
-        convertedData.accelZ = ConvertTwosComplementShortToInteger(data.accelZ) / 16384.0;
+        convertedData->accelX = ConvertTwosComplementShortToInteger((data[0] << 8) | data[1]) / 16384.0;
+        convertedData->accelY = ConvertTwosComplementShortToInteger((data[2] << 8) | data[3]) / 16384.0;
+        convertedData->accelZ = ConvertTwosComplementShortToInteger((data[4] << 8) | data[5]) / 16384.0;
 
-        convertedData.temperature = (data.temperature / 340.0) + 36.53;
+        convertedData->temperature = ((int16_t)((data[6] << 8) | data[7]) / 340.0f) + 36.53f;
 
-        convertedData.gyroX = ConvertTwosComplementShortToInteger(data.gyroX) / 131.0;
-        convertedData.gyroY = ConvertTwosComplementShortToInteger(data.gyroY) / 131.0;
-        convertedData.gyroZ = ConvertTwosComplementShortToInteger(data.gyroZ) / 131.0;
+        convertedData->gyroX = ConvertTwosComplementShortToInteger((data[8] << 8) | data[9]) / 131.0;
+        convertedData->gyroY = ConvertTwosComplementShortToInteger((data[10] << 8) | data[11]) / 131.0;
+        convertedData->gyroZ = ConvertTwosComplementShortToInteger((data[12] << 8) | data[13]) / 131.0;
 
         return convertedData;
     }
