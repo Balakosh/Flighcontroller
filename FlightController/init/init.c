@@ -37,6 +37,7 @@
 #include "i2c/i2c.h"
 #include "sensors/mpu6050/mpu6050.h"
 #include "sensors/sensor.h"
+#include "eth/eth.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -50,7 +51,6 @@ static void initGates(void)
     GateSwi_construct(&sensorDataSwiGateStruct, &gateParams);
     sensorDataSwiGateHandle = GateSwi_handle(&sensorDataSwiGateStruct);
 }
-
 
 static void initClocks(void)
 {
@@ -186,6 +186,7 @@ void init(void)
     openDebugUART();
     initPWM();
     initI2C();
+    initEMAC();
 
     initTasks();
     initMailboxes();
