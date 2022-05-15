@@ -68,16 +68,18 @@ static const cmdItem DEBUG_CMD_ARRAY [] =
 void dataLogClockFxn(void)
 {
     const MPU6050_Data data = getMPU6050Data();
+    const MPU6050_Comstats comstats = getMPU6050Comstats();
 
     if (data.valid)
     {
         const RollPitchYawInRad rpy = getEulerAngles();
 
-        snprintf(buffer, sizeof(buffer), "r=%.0f p=%.0f y=%.0f accX=%.2f accY=%.2f accZ=%.2f gyroX=%.2f gyroY=%.2f gyroZ=%.2f temp=%.2f",
+        snprintf(buffer, sizeof(buffer), "r=%.2f p=%.2f y=%.2f accX=%.2f accY=%.2f accZ=%.2f gyroX=%.2f gyroY=%.2f gyroZ=%.2f temp=%.2f overflowCounter=%u fifoCountPeak=%u dataInvalidCounter=%u",
                  rpy.roll * 180 / M_PI, rpy.pitch * 180 / M_PI, rpy.yaw * 180 / M_PI,
                  data.accelX, data.accelY, data.accelZ,
                  data.gyroX, data.gyroY, data.gyroZ,
-                 data.temperature);
+                 data.temperature,
+                 comstats.overflowCounter, comstats.fifoCountPeak, comstats.dataInvalidCounter);
         printLog(buffer, INFOMSG);
     }
     else

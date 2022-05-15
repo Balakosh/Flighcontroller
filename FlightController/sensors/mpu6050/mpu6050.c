@@ -103,7 +103,7 @@ static bool writeRegister(const uint8_t registerNumber, const uint8_t value)
     return false;
 }
 
-static void openI2C(void)
+void openI2C(void)
 {
     I2C_Params i2cParams;
 
@@ -126,7 +126,7 @@ static void resetMPU6050AndClearRegisters(void)
 
 static void enableInterruptsMPU6050(void)
 {
-    writeRegister(MPU6050_INT_ENABLE, MPU6050_DATA_READY_INT_EN);
+    writeRegister(MPU6050_INT_ENABLE, MPU6050_DATA_READY_INT_EN | MPU6050_FIFO_OVERFLOW_INT_EN);
 }
 
 static void configurePowerManagementMPU6050(void)
@@ -137,7 +137,7 @@ static void configurePowerManagementMPU6050(void)
 
 static void configureSampleRateDividerMPU6050(void)
 {
-    writeRegister(MPU6050_SAMPLE_RATE_DIVIDER, 1);
+    writeRegister(MPU6050_SAMPLE_RATE_DIVIDER, 2);
 }
 
 static void configureMPU6050(void)
@@ -152,8 +152,6 @@ static void configureFIFOMPU6050(void)
 
 void initMPU6050(void)
 {
-    openI2C();
-
     configurePowerManagementMPU6050();
     resetMPU6050();
     resetMPU6050AndClearRegisters();
@@ -250,8 +248,10 @@ bool getFifoValues(MPU6050_Data* const convertedData)
         convertedData->gyroY = ConvertTwosComplementShortToInteger((data[10] << 8) | data[11]) / 131.0;
         convertedData->gyroZ = ConvertTwosComplementShortToInteger((data[12] << 8) | data[13]) / 131.0;
 
-        return convertedData;
+        convertedData->valid = true;
+
+        return true;
     }
 
-    return convertedData;
+    return false;
 }

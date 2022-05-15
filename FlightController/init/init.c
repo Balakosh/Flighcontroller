@@ -23,6 +23,7 @@
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/gates/GateSwi.h>
 
 #include "tasks/tasks.h"
 #include "gpio/gpio.h"
@@ -35,9 +36,21 @@
 #include "esc/esc.h"
 #include "i2c/i2c.h"
 #include "sensors/mpu6050/mpu6050.h"
+#include "sensors/sensor.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
+
+static void initGates(void)
+{
+    GateSwi_Params gateParams;
+
+    GateSwi_Params_init(&gateParams);
+
+    GateSwi_construct(&sensorDataSwiGateStruct, &gateParams);
+    sensorDataSwiGateHandle = GateSwi_handle(&sensorDataSwiGateStruct);
+}
+
 
 static void initClocks(void)
 {
@@ -159,7 +172,7 @@ void initSemaphores(void)
     Semaphore_Params params;
 
     Semaphore_Params_init(&params);
-    params.mode = Semaphore_Mode_BINARY;
+    params.mode = Semaphore_Mode_COUNTING;
 
     Semaphore_construct(&mpu6050InterruptSemaphoreStruct, 0, &params);
     mpu6050InterruptSemaphoreHandle = Semaphore_handle(&mpu6050InterruptSemaphoreStruct);
@@ -178,6 +191,7 @@ void init(void)
     initMailboxes();
     initClocks();
     initSemaphores();
+    initGates();
 
     getResetCause();
 

@@ -133,6 +133,13 @@ enum
 
 enum
 {
+    MPU6050_DATA_READY_INT = 0x1,
+    MPU6050_I2C_MASTER_INT = 0x08,
+    MPU6050_FIFO_OVERFLOW_INT = 0x10
+} MPU6050_InterruptStatus;
+
+enum
+{
     MPU6050_PLL_X_GYRO_REF = 0x01,
     MPU6050_PLL_EXTERNAL_32dot768kHz = 0x04,
     MPU6050_TEMPERATURE_DISABLE = 0x08,
@@ -165,6 +172,14 @@ typedef struct __attribute__ ((__packed__))
     bool valid;
 } MPU6050_Data;
 
+typedef struct __attribute__ ((__packed__))
+{
+    uint32_t overflowCounter;
+    uint32_t fifoCountPeak;
+    uint32_t dataInvalidCounter;
+} MPU6050_Comstats;
+
+void openI2C(void);
 void initMPU6050(void);
 void readAccelerometer(void);
 void readGyroscope(void);
