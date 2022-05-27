@@ -39,6 +39,7 @@
 #include "sensors/sensor.h"
 #include "eth/eth.h"
 #include "eth/tcpServer.h"
+#include "qcom/qcom.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -103,7 +104,7 @@ static void initMailboxes(void)
     mailboxParams.buf = tcpMailboxBuffer;
     mailboxParams.bufSize = sizeof(tcpMailboxBuffer);
     mailboxParams.instance->name = (xdc_String)"tcpMailbox";
-    Mailbox_construct(&tcpMailboxStruct, sizeof(TcpMessage), TCP_MAILBOXSLOTS, &mailboxParams, NULL);
+    Mailbox_construct(&tcpMailboxStruct, sizeof(qMessage), TCP_MAILBOXSLOTS, &mailboxParams, NULL);
     tcpMailbox = Mailbox_handle(&tcpMailboxStruct);
 }
 

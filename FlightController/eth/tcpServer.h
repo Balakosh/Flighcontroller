@@ -15,25 +15,12 @@
 #define TCP_MAILBOXSLOTS 50
 
 #include "sensors/sensor.h"
-
-typedef struct __attribute__((__packed__))
-{
-    uint8_t sync;
-    uint8_t frameCounter;
-    uint32_t size;
-} TcpMessageHeader;
-
-typedef struct __attribute__((__packed__))
-{
-    TcpMessageHeader header;
-    uint8_t payload[TCP_MAILBOXSIZE];
-    uint32_t size;
-} TcpMessage;
+#include "qcom/qcom.h"
 
 typedef struct __attribute__((__packed__))
 {
     Mailbox_MbxElem q;
-    TcpMessage payload;
+    qMessage payload;
 } tcpMessageObject;
 
 typedef struct __attribute__((__packed__))

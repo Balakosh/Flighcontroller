@@ -35,10 +35,7 @@ static void calculateEulerAnglesFromQuaternions(void)
 
 static void dataReadyInterruptHandler(void)
 {
-    TcpMessage msg;
     MPU6050_Data localData;
-
-    _Static_assert (sizeof(msg.payload) >= sizeof(MPU6050_Data), "assert1");
 
     const uint16_t fifoCount = getFifoCount();
 

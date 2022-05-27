@@ -23,6 +23,7 @@
 
 #include "tcpServer.h"
 #include "sensors/sensor.h"
+#include "qcom/qcom.h"
 
 #define TCPPACKETSIZE 256
 #define NUMTCPWORKERS 3
@@ -34,21 +35,14 @@ tcpMessageObject tcpMailboxBuffer[TCP_MAILBOXSLOTS + 1];
 Clock_Struct tcpMsgClockStruct;
 Clock_Handle tcpMsgClockHandle;
 
-const uint8_t SYNC = 0x7e;
-static uint8_t frameCounter;
-
 void tcpMessageClockFxn(void)
 {
-    TcpMessage msg;
+    qMessage msg;
 
-    memset(&msg, 0, sizeof(TcpMessage));
+    memset(&msg, 0, sizeof(qMessage));
 
     const MPU6050_Data data = getMPU6050Data();
-//    memcpy(msg.payload, &data, sizeof(MPU6050_Data));
-
-    //const RollPitchYawInRad rpy = getEulerAngles();
-    const RollPitchYawInRad rpy = { 1.0, 2.0, 3.0 };
-//    memcpy(&msg.payload[sizeof(MPU6050_Data)], &rpy, sizeof(RollPitchYawInRad));
+    const RollPitchYawInRad rpy = getEulerAngles();
 
     tcpMessageAngles foo;
     memcpy(&foo.rawData, &data, sizeof(MPU6050_Data));
@@ -56,22 +50,23 @@ void tcpMessageClockFxn(void)
 
     memcpy(msg.payload, &foo, sizeof(tcpMessageAngles));
 
-    //msg.size = sizeof(MPU6050_Data) + sizeof(RollPitchYawInRad);
-    msg.size = sizeof(tcpMessageAngles);
+    msg.header.length = sizeof(tcpMessageAngles);
 
     Mailbox_post(tcpMailbox, &msg, BIOS_NO_WAIT);
 }
 
-static void fillHeader(TcpMessage* msg)
+static void fillHeader(qMessage* msg)
 {
-    msg->header.sync = SYNC;
+    static uint8_t frameCounter;
+
+    msg->header.syncByte = QSYNC;
     msg->header.frameCounter = frameCounter++;
-    msg->header.size = sizeof(TcpMessageHeader) + msg->size;
+    msg->header.length += sizeof(qHeader);
 }
 
 void tcpWorker(UArg arg0, UArg arg1)
 {
-    TcpMessage msg;
+    qMessage msg;
     int clientfd = (int)arg0;
     int bytesSent = 1;
 
@@ -94,12 +89,39 @@ void tcpWorker(UArg arg0, UArg arg1)
 
         fillHeader(&msg);
 
-        bytesSent = send(clientfd, &msg, msg.header.size, 0);
+        bytesSent = send(clientfd, &msg, msg.header.length, 0);
     }
 
     Clock_stop(tcpMsgClockHandle);
 
     close(clientfd);
+}
+
+void tcpRx(UArg arg0)
+{
+    qMessage msg;
+    int clientfd = (int)arg0;
+    int bytesRcvd;
+    char tcpBuffer[TCPPACKETSIZE];
+    qParserStatusStruct parserStatus;
+
+    while ((bytesRcvd = recv(clientfd, tcpBuffer, TCPPACKETSIZE, 0)) > 0)
+    {
+        for (int byteIndex = 0; byteIndex < bytesRcvd; byteIndex++)
+        {
+            const int parseResult = parseQ(tcpBuffer[byteIndex], &msg, &parserStatus);
+
+            if (parseResult == 1)
+            {
+
+            }
+        }
+
+        if (bytesRcvd <= 0)
+        {
+            break;
+        }
+    }
 }
 
 void tcpHandler(UArg arg0, UArg arg1)

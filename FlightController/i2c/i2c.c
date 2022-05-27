@@ -41,6 +41,8 @@ const I2C_Config I2C_config[] =
 void initI2C(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
+    while (!SysCtlPeripheralReady(SYSCTL_PERIPH_I2C0)) {};
+    SysCtlPeripheralReset(SYSCTL_PERIPH_I2C0);
 
     GPIOPinConfigure(GPIO_PB2_I2C0SCL);
     GPIOPinConfigure(GPIO_PB3_I2C0SDA);
