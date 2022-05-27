@@ -24,6 +24,8 @@
 #include "tcpServer.h"
 #include "sensors/sensor.h"
 #include "qcom/qcom.h"
+#include "pwm/pwm.h"
+#include "utils/logger.h"
 
 #define TCPPACKETSIZE 256
 #define NUMTCPWORKERS 3
@@ -50,6 +52,7 @@ void tcpMessageClockFxn(void)
 
     memcpy(msg.payload, &foo, sizeof(tcpMessageAngles));
 
+    msg.header.messageID = QMSGID_IMU;
     msg.header.length = sizeof(tcpMessageAngles);
 
     Mailbox_post(tcpMailbox, &msg, BIOS_NO_WAIT);
@@ -105,6 +108,8 @@ void tcpRx(UArg arg0)
     char tcpBuffer[TCPPACKETSIZE];
     qParserStatusStruct parserStatus;
 
+    initQParser(&parserStatus);
+
     while ((bytesRcvd = recv(clientfd, tcpBuffer, TCPPACKETSIZE, 0)) > 0)
     {
         for (int byteIndex = 0; byteIndex < bytesRcvd; byteIndex++)
@@ -113,7 +118,16 @@ void tcpRx(UArg arg0)
 
             if (parseResult == 1)
             {
+                if (msg.header.messageID == QMSGID_PWM)
+                {
+                    qMessagePWM* pwm = (qMessagePWM*)msg.payload;
 
+                    setPWMinPercent(pwm->percentage);
+
+//                    char buffer[64];
+//                    snprintf(buffer, sizeof(buffer), "PWM set to %u", pwm->percentage);
+//                    printLog(buffer, INFOMSG);
+                }
             }
         }
 
@@ -136,7 +150,6 @@ void tcpHandler(UArg arg0, UArg arg1)
     socklen_t          addrlen = sizeof(clientAddr);
     Task_Handle        taskHandle;
     Task_Params        taskParams;
-    Error_Block        eb;
 
     server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server == -1)
@@ -165,29 +178,28 @@ void tcpHandler(UArg arg0, UArg arg1)
     optval = 1;
     if (setsockopt(server, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen) < 0)
     {
-        System_printf("Error: setsockopt failed\n");
         goto shutdown;
     }
 
     while ((clientfd = accept(server, (struct sockaddr *)&clientAddr, &addrlen)) != -1)
     {
-        Error_init(&eb);
-
         Task_Params_init(&taskParams);
         taskParams.arg0 = (UArg)clientfd;
         taskParams.stackSize = 1280;
-        taskHandle = Task_create((Task_FuncPtr)tcpWorker, &taskParams, &eb);
+        taskHandle = Task_create((Task_FuncPtr)tcpWorker, &taskParams, NULL);
+
+        Task_Params_init(&taskParams);
+        taskParams.arg0 = (UArg)clientfd;
+        taskParams.stackSize = 4096;
+        Task_create((Task_FuncPtr)tcpRx, &taskParams, NULL);
 
         if (taskHandle == NULL)
         {
-            System_printf("Error: Failed to create new Task\n");
             close(clientfd);
         }
 
         addrlen = sizeof(clientAddr);
     }
-
-    System_printf("Error: accept failed.\n");
 
 shutdown:
     if (server > 0)
