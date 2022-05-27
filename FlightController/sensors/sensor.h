@@ -12,7 +12,7 @@
 
 #include "sensors/mpu6050/mpu6050.h"
 
-typedef struct
+typedef struct __attribute__ ((__packed__))
 {
     double roll;
     double pitch;

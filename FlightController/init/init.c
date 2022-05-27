@@ -38,6 +38,7 @@
 #include "sensors/mpu6050/mpu6050.h"
 #include "sensors/sensor.h"
 #include "eth/eth.h"
+#include "eth/tcpServer.h"
 
 char resetCauseString[128];
 uint32_t resetCause;
@@ -78,6 +79,14 @@ static void initClocks(void)
 
     Clock_construct(&dataLogClockStruct, (Clock_FuncPtr)dataLogClockFxn, 1, &clockParams);
     dataLogClockHandle = Clock_handle(&dataLogClockStruct);
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = 40;
+    clockParams.startFlag = false;
+    clockParams.instance->name = "tcpMsg";
+
+    Clock_construct(&tcpMsgClockStruct, (Clock_FuncPtr)tcpMessageClockFxn, 1, &clockParams);
+    tcpMsgClockHandle = Clock_handle(&tcpMsgClockStruct);
 }
 
 static void initMailboxes(void)
@@ -90,6 +99,12 @@ static void initMailboxes(void)
     mailboxParams.instance->name = (xdc_String)"debugMailbox";
     Mailbox_construct(&debugMailboxStruct, sizeof(DebugMessage), MAILBOXSLOTS, &mailboxParams, NULL);
     debugMailbox = Mailbox_handle(&debugMailboxStruct);
+
+    mailboxParams.buf = tcpMailboxBuffer;
+    mailboxParams.bufSize = sizeof(tcpMailboxBuffer);
+    mailboxParams.instance->name = (xdc_String)"tcpMailbox";
+    Mailbox_construct(&tcpMailboxStruct, sizeof(TcpMessage), TCP_MAILBOXSLOTS, &mailboxParams, NULL);
+    tcpMailbox = Mailbox_handle(&tcpMailboxStruct);
 }
 
 static void initPeripherals(void)

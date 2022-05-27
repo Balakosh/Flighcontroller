@@ -17,6 +17,7 @@
 #include "mpu6050/mpu6050.h"
 #include "filter/madgwick/MadgwickAHRS.h"
 #include "sensor.h"
+#include "eth/tcpServer.h"
 
 static MPU6050_Data data;
 static MPU6050_Comstats mpu6050Comstats;
@@ -29,25 +30,25 @@ static void calculateEulerAnglesFromQuaternions(void)
 {
     eulersRad.roll = atan2(2.0 * q0 * q1 + 2.0 * q2 * q3, q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3);
     eulersRad.pitch = asin(2.0 * q0 * q2 - 2.0 * q1 * q3);
-    eulersRad.yaw = atan2(2.0 * q0 * q3 + 2.0 * q1 * q2, q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3);
+    eulersRad.yaw = 0;//atan2(2.0 * q0 * q3 + 2.0 * q1 * q2, q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3);
 }
 
 static void dataReadyInterruptHandler(void)
 {
+    TcpMessage msg;
     MPU6050_Data localData;
 
-    uint16_t fifoCount;
+    _Static_assert (sizeof(msg.payload) >= sizeof(MPU6050_Data), "assert1");
 
-    do
+    const uint16_t fifoCount = getFifoCount();
+
+    if (fifoCount >= 14)
     {
-        fifoCount = getFifoCount();
-
         if (getFifoValues(&localData))
         {
             localData.valid = true;
 
             MadgwickAHRSupdate(localData.gyroX / 180.0 * M_PI, localData.gyroY / 180.0 * M_PI, localData.gyroZ / 180.0 * M_PI, localData.accelX, localData.accelY, localData.accelZ, 0.0, 0.0, 0.0);
-            calculateEulerAnglesFromQuaternions();
         }
         else
         {
@@ -57,6 +58,7 @@ static void dataReadyInterruptHandler(void)
 
         const IArg gateKey = GateSwi_enter(sensorDataSwiGateHandle);
 
+        calculateEulerAnglesFromQuaternions();
         memcpy(&data, &localData, sizeof(MPU6050_Data));
 
         if (fifoCount > mpu6050Comstats.fifoCountPeak)
@@ -65,7 +67,7 @@ static void dataReadyInterruptHandler(void)
         }
 
         GateSwi_leave(sensorDataSwiGateHandle, gateKey);
-    } while (fifoCount > 0);
+    }
 }
 
 static void fifoOverflowInterruptHandler(void)

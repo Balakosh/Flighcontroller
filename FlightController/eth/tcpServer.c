@@ -6,6 +6,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include <xdc/std.h>
 #include <xdc/runtime/Error.h>
@@ -13,31 +14,90 @@
 
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Mailbox.h>
+#include <ti/sysbios/knl/Clock.h>
+
 #include <ti/drivers/GPIO.h>
 
 #include <sys/socket.h>
 
+#include "tcpServer.h"
+#include "sensors/sensor.h"
+
 #define TCPPACKETSIZE 256
 #define NUMTCPWORKERS 3
 
+Mailbox_Handle tcpMailbox;
+Mailbox_Struct tcpMailboxStruct;
+tcpMessageObject tcpMailboxBuffer[TCP_MAILBOXSLOTS + 1];
+
+Clock_Struct tcpMsgClockStruct;
+Clock_Handle tcpMsgClockHandle;
+
+const uint8_t SYNC = 0x7e;
+static uint8_t frameCounter;
+
+void tcpMessageClockFxn(void)
+{
+    TcpMessage msg;
+
+    memset(&msg, 0, sizeof(TcpMessage));
+
+    const MPU6050_Data data = getMPU6050Data();
+//    memcpy(msg.payload, &data, sizeof(MPU6050_Data));
+
+    //const RollPitchYawInRad rpy = getEulerAngles();
+    const RollPitchYawInRad rpy = { 1.0, 2.0, 3.0 };
+//    memcpy(&msg.payload[sizeof(MPU6050_Data)], &rpy, sizeof(RollPitchYawInRad));
+
+    tcpMessageAngles foo;
+    memcpy(&foo.rawData, &data, sizeof(MPU6050_Data));
+    memcpy(&foo.rpy, &rpy, sizeof(RollPitchYawInRad));
+
+    memcpy(msg.payload, &foo, sizeof(tcpMessageAngles));
+
+    //msg.size = sizeof(MPU6050_Data) + sizeof(RollPitchYawInRad);
+    msg.size = sizeof(tcpMessageAngles);
+
+    Mailbox_post(tcpMailbox, &msg, BIOS_NO_WAIT);
+}
+
+static void fillHeader(TcpMessage* msg)
+{
+    msg->header.sync = SYNC;
+    msg->header.frameCounter = frameCounter++;
+    msg->header.size = sizeof(TcpMessageHeader) + msg->size;
+}
+
 void tcpWorker(UArg arg0, UArg arg1)
 {
-    int  clientfd = (int)arg0;
-    int  bytesRcvd;
-    int  bytesSent;
-    char buffer[TCPPACKETSIZE];
+    TcpMessage msg;
+    int clientfd = (int)arg0;
+    int bytesSent = 1;
 
-    System_printf("tcpWorker: start clientfd = 0x%x\n", clientfd);
+//    while ((bytesRcvd = recv(clientfd, buffer, TCPPACKETSIZE, 0)) > 0)
+//    {
+//        bytesSent = send(clientfd, buffer, bytesRcvd, 0);
+//
+//        if (bytesSent < 0 || bytesSent != bytesRcvd)
+//        {
+//            System_printf("Error: send failed.\n");
+//            break;
+//        }
+//    }
 
-    while ((bytesRcvd = recv(clientfd, buffer, TCPPACKETSIZE, 0)) > 0)
+    Clock_start(tcpMsgClockHandle);
+
+    while (bytesSent > 0)
     {
-        bytesSent = send(clientfd, buffer, bytesRcvd, 0);
-        if (bytesSent < 0 || bytesSent != bytesRcvd) {
-            System_printf("Error: send failed.\n");
-            break;
-        }
+        Mailbox_pend(tcpMailbox, &msg, BIOS_WAIT_FOREVER);
+
+        fillHeader(&msg);
+
+        bytesSent = send(clientfd, &msg, msg.header.size, 0);
     }
-    System_printf("tcpWorker stop clientfd = 0x%x\n", clientfd);
+
+    Clock_stop(tcpMsgClockHandle);
 
     close(clientfd);
 }
@@ -59,7 +119,6 @@ void tcpHandler(UArg arg0, UArg arg1)
     server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (server == -1)
     {
-        System_printf("Error: socket not created.\n");
         goto shutdown;
     }
 
@@ -72,14 +131,12 @@ void tcpHandler(UArg arg0, UArg arg1)
 
     if (status == -1)
     {
-        System_printf("Error: bind failed.\n");
         goto shutdown;
     }
 
     status = listen(server, NUMTCPWORKERS);
     if (status == -1)
     {
-        System_printf("Error: listen failed.\n");
         goto shutdown;
     }
 
@@ -92,12 +149,8 @@ void tcpHandler(UArg arg0, UArg arg1)
 
     while ((clientfd = accept(server, (struct sockaddr *)&clientAddr, &addrlen)) != -1)
     {
-        System_printf("tcpHandler: Creating thread clientfd = %d\n", clientfd);
-
-        /* Init the Error_Block */
         Error_init(&eb);
 
-        /* Initialize the defaults and set the parameters. */
         Task_Params_init(&taskParams);
         taskParams.arg0 = (UArg)clientfd;
         taskParams.stackSize = 1280;
@@ -109,7 +162,6 @@ void tcpHandler(UArg arg0, UArg arg1)
             close(clientfd);
         }
 
-        /* addrlen is a value-result param, must reset for next accept call */
         addrlen = sizeof(clientAddr);
     }
 
