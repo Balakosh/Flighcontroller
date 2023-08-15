@@ -51,7 +51,8 @@ typedef enum {
 
 typedef struct __attribute__ ((__packed__))
 {
-    uint8_t percentage;
+    uint8_t percentagePWM1;
+    uint8_t percentagePWM2;
 } qMessagePWM;
 
 int parseQ(uint8_t data, qMessage* ethMessage, qParserStatusStruct* parserStatus);

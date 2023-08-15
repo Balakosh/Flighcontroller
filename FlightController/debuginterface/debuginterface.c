@@ -115,7 +115,8 @@ static cmdState debugSetPWM(const char* const argv[], const int argc)
 {
     const uint32_t pwmDutyCycleInPercent = atoi(argv[2]);
 
-    setPWMinPercent(pwmDutyCycleInPercent);
+    setPWM1Percent(pwmDutyCycleInPercent);
+    setPWM2Percent(pwmDutyCycleInPercent);
 
     snprintf(buffer, sizeof(buffer), "PWM set to %u", pwmDutyCycleInPercent);
     printLog(buffer, INFOMSG);

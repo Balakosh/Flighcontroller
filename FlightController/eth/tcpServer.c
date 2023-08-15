@@ -122,7 +122,8 @@ void tcpRx(UArg arg0)
                 {
                     qMessagePWM* pwm = (qMessagePWM*)msg.payload;
 
-                    setPWMinPercent(pwm->percentage);
+                    setPWM1Percent(pwm->percentagePWM1);
+                    setPWM2Percent(pwm->percentagePWM2);
 
 //                    char buffer[64];
 //                    snprintf(buffer, sizeof(buffer), "PWM set to %u", pwm->percentage);
