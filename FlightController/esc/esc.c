@@ -18,8 +18,8 @@ void escCalibrationClockFxn(void)
 {
     pwmDutyCycleInPercent -= 1;
 
-    setPWM1(pwmDutyCycleInPercent);
-    setPWM2(pwmDutyCycleInPercent);
+    setPWMPercent(pwmDutyCycleInPercent, 0);
+    setPWMPercent(pwmDutyCycleInPercent, 1);
 
     if (pwmDutyCycleInPercent == 10)
     {
@@ -30,7 +30,7 @@ void escCalibrationClockFxn(void)
 void calibrateESC(void)
 {
     pwmDutyCycleInPercent = 90;
-    setPWM1(pwmDutyCycleInPercent);
-    setPWM2(pwmDutyCycleInPercent);
+    setPWMPercent(pwmDutyCycleInPercent, 0);
+    setPWMPercent(pwmDutyCycleInPercent, 1);
     Clock_start(escCalibrationClockHandle);
 }

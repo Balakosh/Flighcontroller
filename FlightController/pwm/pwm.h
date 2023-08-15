@@ -8,10 +8,19 @@
 #ifndef PWM_PWM_H_
 #define PWM_PWM_H_
 
+typedef struct
+{
+    uint32_t peripheral;
+    uint32_t pinMux;
+    uint32_t port;
+    uint8_t pin;
+    uint32_t timerBase;
+    uint32_t timer;
+    uint32_t lastPerMil;
+} pwmConfig;
+
 void initPWM(void);
-void setPWM1(uint32_t perMil);
-void setPWM2(uint32_t perMil);
-void setPWM1Percent(uint32_t percent);
-void setPWM2Percent(uint32_t percent);
+void setPWM(uint32_t perMil, uint8_t pwmNumber);
+void setPWMPercent(uint32_t percent, uint8_t pwmNumber);
 
 #endif /* PWM_PWM_H_ */

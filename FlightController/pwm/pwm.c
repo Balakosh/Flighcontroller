@@ -21,137 +21,62 @@
 
 #include "pwm/pwm.h"
 
-static uint32_t clock;
 static const uint32_t pwmFrequencyInHertz = 100;
+static uint32_t timerLoad;
+static pwmConfig pwmConfigs[2] =
+{
+     { SYSCTL_PERIPH_TIMER3, GPIO_PM3_T3CCP1, GPIO_PORTM_BASE, GPIO_PIN_3, TIMER3_BASE, TIMER_B },
+     { SYSCTL_PERIPH_TIMER5, GPIO_PM7_T5CCP1, GPIO_PORTM_BASE, GPIO_PIN_7, TIMER5_BASE, TIMER_B },
+};
 
-void setPWM1Percent(const uint32_t percent)
+void setPWMPercent(const uint32_t percent, const uint8_t pwmNumber)
 {
     if (percent <= 100)
     {
-        setPWM1(percent + 500);
+        setPWM(percent + 500, pwmNumber);
     }
 }
 
-void setPWM2Percent(const uint32_t percent)
+void setPWM(const uint32_t perMil, const uint8_t pwmNumber)
 {
-    if (percent <= 100)
-    {
-        setPWM2(percent + 500);
-    }
-}
-
-void setPWM1(const uint32_t perMil)
-{
-    static uint32_t lastPerMil;
-
     if (perMil <= 1000)
     {
         if (perMil != 0.0f)
         {
-            if (lastPerMil == 0)
+            if (pwmConfigs[pwmNumber].lastPerMil == 0)
             {
-                const unsigned int timerLoad = clock / pwmFrequencyInHertz;
                 const uint32_t dutyCycle = timerLoad * ((1000.0f - perMil) / 1000.0f);
                 const uint32_t prescaler = timerLoad >> 16;
 
-                TimerPrescaleSet(TIMER3_BASE, TIMER_B, prescaler);
+                TimerPrescaleSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, prescaler);
 
-                GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_3);
+                GPIOPinTypeTimer(pwmConfigs[pwmNumber].port, pwmConfigs[pwmNumber].pin);
 
-                TimerLoadSet(TIMER3_BASE, TIMER_B, timerLoad);
+                TimerLoadSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, timerLoad);
 
-                TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle >> 16));
-                TimerMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle & 0xffff));
+                TimerPrescaleMatchSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, (dutyCycle >> 16));
+                TimerMatchSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, (dutyCycle & 0xffff));
 
-                TimerEnable(TIMER3_BASE, TIMER_B);
+                TimerEnable(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer);
             }
             else
             {
-                const unsigned int timerLoad = clock / pwmFrequencyInHertz;
                 const uint32_t dutyCycle = timerLoad * ((1000.0f - perMil) / 1000.0f);
 
-                TimerPrescaleMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle >> 16));
-                TimerMatchSet(TIMER3_BASE, TIMER_B, (dutyCycle & 0xffff));
+                TimerPrescaleMatchSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, (dutyCycle >> 16));
+                TimerMatchSet(pwmConfigs[pwmNumber].timerBase, pwmConfigs[pwmNumber].timer, (dutyCycle & 0xffff));
             }
 
         }
         else
         {
-            TimerDisable(TIMER3_BASE, TIMER_B);
-            GPIOPinTypeGPIOOutput(GPIO_PORTM_BASE, GPIO_PIN_3);
-            GPIOPinWrite(GPIO_PORTM_BASE, GPIO_PIN_3, 0);
+            TimerDisable(pwmConfigs[pwmNumber].timerBase, TIMER_B);
+            GPIOPinTypeGPIOOutput(pwmConfigs[pwmNumber].port, pwmConfigs[pwmNumber].pin);
+            GPIOPinWrite(pwmConfigs[pwmNumber].port, pwmConfigs[pwmNumber].pin, 0);
         }
 
-        lastPerMil = perMil;
+        pwmConfigs[pwmNumber].lastPerMil = perMil;
     }
-}
-
-void setPWM2(const uint32_t perMil)
-{
-    static uint32_t lastPerMil;
-
-    if (perMil <= 1000)
-    {
-        if (perMil != 0.0f)
-        {
-            if (lastPerMil == 0)
-            {
-                const unsigned int timerLoad = clock / pwmFrequencyInHertz;
-                const uint32_t dutyCycle = timerLoad * ((1000.0f - perMil) / 1000.0f);
-                const uint32_t prescaler = timerLoad >> 16;
-
-                TimerPrescaleSet(TIMER5_BASE, TIMER_B, prescaler);
-
-                GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_7);
-
-                TimerLoadSet(TIMER5_BASE, TIMER_B, timerLoad);
-
-                TimerPrescaleMatchSet(TIMER5_BASE, TIMER_B, (dutyCycle >> 16));
-                TimerMatchSet(TIMER5_BASE, TIMER_B, (dutyCycle & 0xffff));
-
-                TimerEnable(TIMER5_BASE, TIMER_B);
-            }
-            else
-            {
-                const unsigned int timerLoad = clock / pwmFrequencyInHertz;
-                const uint32_t dutyCycle = timerLoad * ((1000.0f - perMil) / 1000.0f);
-
-                TimerPrescaleMatchSet(TIMER5_BASE, TIMER_B, (dutyCycle >> 16));
-                TimerMatchSet(TIMER5_BASE, TIMER_B, (dutyCycle & 0xffff));
-            }
-
-        }
-        else
-        {
-            TimerDisable(TIMER5_BASE, TIMER_B);
-            GPIOPinTypeGPIOOutput(GPIO_PORTM_BASE, GPIO_PIN_7);
-            GPIOPinWrite(GPIO_PORTM_BASE, GPIO_PIN_7, 0);
-        }
-
-        lastPerMil = perMil;
-    }
-}
-
-static void initPWM1(void)
-{
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);
-
-    GPIOPinConfigure(GPIO_PM3_T3CCP1);
-    GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_3);
-
-    TimerConfigure(TIMER3_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM);
-    TimerClockSourceSet(TIMER3_BASE, TIMER_CLOCK_SYSTEM);
-}
-
-static void initPWM2(void)
-{
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
-
-    GPIOPinConfigure(GPIO_PM7_T5CCP1);
-    GPIOPinTypeTimer(GPIO_PORTM_BASE, GPIO_PIN_7);
-
-    TimerConfigure(TIMER5_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM);
-    TimerClockSourceSet(TIMER5_BASE, TIMER_CLOCK_SYSTEM);
 }
 
 void initPWM(void)
@@ -159,10 +84,18 @@ void initPWM(void)
     xdc_runtime_Types_FreqHz freq;
     BIOS_getCpuFreq((xdc_runtime_Types_FreqHz*)&freq);
 
-    clock = freq.lo;
+    timerLoad = freq.lo / pwmFrequencyInHertz;
 
-    initPWM1();
-    initPWM2();
+    for (int i = 0; i < (sizeof(pwmConfigs) / sizeof(pwmConfig)); i++)
+    {
+        SysCtlPeripheralEnable(pwmConfigs[i].peripheral);
 
-    setPWM1Percent(0);
+        GPIOPinConfigure(pwmConfigs[i].pinMux);
+        GPIOPinTypeTimer(pwmConfigs[i].port, pwmConfigs[i].pin);
+
+        TimerConfigure(pwmConfigs[i].timerBase, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM);
+        TimerClockSourceSet(pwmConfigs[i].timerBase, TIMER_CLOCK_SYSTEM);
+
+        setPWMPercent(0, i);
+    }
 }
